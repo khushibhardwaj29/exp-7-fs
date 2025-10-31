@@ -1,0 +1,76 @@
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const { Server } = require('socket.io');
+
+const app = express();
+app.use(cors()); // allow client on different origin during dev
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*' } // for local dev; adjust in production
+});
+
+const PORT = process.env.PORT || 5000;
+
+// In-memory store (reset on restart). Good for demo.
+let messages = []; // { id, user, text, time }
+const users = new Map(); // socketId -> userName
+
+io.on('connection', (socket) => {
+  console.log(`Client connected: ${socket.id}`);
+
+  // when a user joins with a name, save and notify others
+  socket.on('join', (userName) => {
+    users.set(socket.id, userName);
+    const joinMsg = {
+      id: `${Date.now()}-${Math.random()}`,
+      user: 'System',
+      text: `${userName} joined the chat`,
+      time: new Date().toISOString()
+    };
+    messages.push(joinMsg);
+    io.emit('message', joinMsg); // broadcast join notice
+    io.emit('users', Array.from(users.values()));
+    // Send history to the user who just joined
+    socket.emit('history', messages);
+  });
+
+  // receive chat messages from clients
+  socket.on('sendMessage', (text) => {
+    const user = users.get(socket.id) || 'Anonymous';
+    const msg = {
+      id: `${Date.now()}-${Math.random()}`,
+      user,
+      text,
+      time: new Date().toISOString()
+    };
+    messages.push(msg);
+    io.emit('message', msg); // broadcast to all connected clients
+  });
+
+  socket.on('disconnect', () => {
+    const user = users.get(socket.id);
+    users.delete(socket.id);
+    console.log(`Client disconnected: ${socket.id} (${user})`);
+    if (user) {
+      const leaveMsg = {
+        id: `${Date.now()}-${Math.random()}`,
+        user: 'System',
+        text: `${user} left the chat`,
+        time: new Date().toISOString()
+      };
+      messages.push(leaveMsg);
+      io.emit('message', leaveMsg);
+      io.emit('users', Array.from(users.values()));
+    }
+  });
+});
+
+app.get('/', (req, res) => {
+  res.send({ status: 'ok', message: 'Socket.io chat server running' });
+});
+
+server.listen(PORT, () => {
+  console.log(`Socket.io server running on http://localhost:${PORT}`);
+});
