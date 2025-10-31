@@ -1,0 +1,51 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+function App() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // Fetch product data from backend
+    axios
+      .get("http://localhost:5000/api/products")
+      .then((response) => {
+        setProducts(response.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError("Failed to fetch products.");
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <h2>Loading products...</h2>;
+  if (error) return <h2 style={{ color: "red" }}>{error}</h2>;
+
+  return (
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <h1>🛍️ Product List</h1>
+      <ul style={{ listStyle: "none", padding: 0 }}>
+        {products.map((product) => (
+          <li
+            key={product.id}
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: "10px",
+              margin: "10px auto",
+              padding: "15px",
+              width: "300px",
+              boxShadow: "2px 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <h3>{product.name}</h3>
+            <p>💰 Price: ₹{product.price}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
