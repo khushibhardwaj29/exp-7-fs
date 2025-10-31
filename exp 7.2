@@ -1,0 +1,117 @@
+1 file changed
++114
+-0
+lines changed
+Search within code
+ 
+‎7.2‎
++114
+Lines changed: 114 additions & 0 deletions
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,114 @@
+//1️⃣ Install required packages//
+npx create-react-app redux-cart
+cd redux-cart
+npm install @reduxjs/toolkit react-redux
+//2️⃣ src/app/store.js//
+import { configureStore } from "@reduxjs/toolkit";
+import cartReducer from "../features/cart/cartSlice";
+export const store = configureStore({
+  reducer: {
+    cart: cartReducer,
+  },
+});
+//3️⃣ src/features/cart/cartSlice.js///
+import { createSlice } from "@reduxjs/toolkit";
+const initialState = {
+  items: [], // {id, name, price, quantity}
+};
+const cartSlice = createSlice({
+  name: "cart",
+  initialState,
+  reducers: {
+    addToCart: (state, action) => {
+      const existing = state.items.find(i => i.id === action.payload.id);
+      if (existing) {
+        existing.quantity++;
+      } else {
+        state.items.push({ ...action.payload, quantity: 1 });
+      }
+    },
+    removeFromCart: (state, action) => {
+      state.items = state.items.filter(i => i.id !== action.payload);
+    },
+    clearCart: (state) => {
+      state.items = [];
+    },
+  },
+});
+export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export default cartSlice.reducer;
+//4️⃣ src/index.js//
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Provider } from "react-redux";
+import { store } from "./app/store";
+import App from "./App";
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <Provider store={store}>
+    <App />
+  </Provider>
+);
+//5️⃣ src/App.js//
+import React from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart, removeFromCart, clearCart } from "./features/cart/cartSlice";
+const products = [
+  { id: 1, name: "Laptop", price: 70000 },
+  { id: 2, name: "Headphones", price: 2500 },
+  { id: 3, name: "Smartphone", price: 35000 },
+];
+function App() {
+  const dispatch = useDispatch();
+  const cart = useSelector(state => state.cart.items);
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  return (
+    <div style={{ textAlign: "center", marginTop: "40px" }}>
+      <h1>🛒 Redux Toolkit Shopping Cart</h1>
+      <h2>Products</h2>
+      <div style={{ display: "flex", justifyContent: "center", gap: "20px" }}>
+        {products.map(p => (
+          <div key={p.id} style={{ border: "1px solid #ccc", padding: "10px", width: "180px" }}>
+            <h3>{p.name}</h3>
+            <p>₹{p.price}</p>
+            <button onClick={() => dispatch(addToCart(p))}>Add to Cart</button>
+          </div>
+        ))}
+      </div>
+      <h2 style={{ marginTop: "40px" }}>Cart</h2>
+      {cart.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <>
+          {cart.map(item => (
+            <div key={item.id} style={{ margin: "10px auto", width: "300px" }}>
+              {item.name} (x{item.quantity}) — ₹{item.price * item.quantity}
+              <button
+                onClick={() => dispatch(removeFromCart(item.id))}
+                style={{ marginLeft: "10px" }}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <h3>Total: ₹{total}</h3>
+          <button onClick={() => dispatch(clearCart())}>Clear Cart</button>
+        </>
+      )}
+    </div>
+  );
+}
+export default App;
+//6️⃣ Run the app//
+npm start
+
+Comment
+You're not 
